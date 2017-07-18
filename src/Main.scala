@@ -60,4 +60,18 @@ object Main extends App {
     set(ArrayBuffer(1,1)) = 1
     return set
   }
+
+  def prepareEvenLearningSet :Map[ArrayBuffer[Float], Int] ={
+    var set = Map[ArrayBuffer[Float], Int]()
+    var a :Float = 0;
+    for (a <- 1 to 1000){
+      val arg = a.toFloat/1000;
+      if(a.toFloat%2 == 0){
+        set(ArrayBuffer(arg)) = 1;
+      }else{
+        set(ArrayBuffer(arg)) = 0;
+      }
+    }
+    return set
+  }
 }
