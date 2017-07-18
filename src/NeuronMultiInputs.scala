@@ -6,15 +6,15 @@ import scala.util.control.Breaks
 class NeuronMultiInputs (var numberOfInputs :Int, val beta :Float) {
   var inputs = prepareInputs
   var biasInput = new InputNeuron(1, 0.5f)
-  val learningFactor :Float = 0.6f
-  val maxDefect :Float = 0.1f
+  val learningFactor :Float = 0.3f
+  val maxDefect :Float = 0.05f
   var counter :Int = 0
   var counterLine :Int = 0
 
   def aggregateBlock: Float = {
     var z :Float = 0
     var a :Int = 0
-    for (a <- 0 until (numberOfInputs - 1)){
+    for (a <- 0 until (numberOfInputs)){
       z += inputs(a).input * inputs(a).weight
     }
     z + biasInput.input*biasInput.weight
@@ -23,6 +23,11 @@ class NeuronMultiInputs (var numberOfInputs :Int, val beta :Float) {
   // Funkcja sigmoidalna unipolarna (krzywa logistyczna)
   def activationBlock: Float = {
     val index = -1 * beta * aggregateBlock
+    1.0f/(1.0f + Math.pow(Math.E, index).toFloat)
+  }
+
+  def logisticCurve(argument: Float): Float = {
+    val index = -1 * beta * argument
     1.0f/(1.0f + Math.pow(Math.E, index).toFloat)
   }
 
@@ -36,6 +41,37 @@ class NeuronMultiInputs (var numberOfInputs :Int, val beta :Float) {
     firstInputs
   }
 
+  def learn3(learningSet :scala.collection.mutable.Map[ArrayBuffer[Float], Int]): Unit = {
+    var mistakes = scala.collection.mutable.Map[ArrayBuffer[Float], Float]()
+    var isLearned: Boolean = false
+    while(!isLearned){
+      for((k, v) <- learningSet) {
+        var a :Int = 0
+        // Wrzucamy na wejścia wejścia z setu uczącego
+        for (a <- 0 until (numberOfInputs)){
+          inputs(a).input = k(a)
+        }
+        val result = activationBlock
+        counterLine += 1
+        var currentDefect :Float = v - result
+        var currentDefectABS :Float = Math.abs(currentDefect)
+        mistakes(k) = currentDefectABS
+        var currentAverage = calculateFinalAverage(mistakes.values.toArray)
+        println("klucz: " + k.toString() + "; oczekiwana wartość: " + v +  "; Wynik: " + result + "; błąd: " + (v - result) + "; średnia: " + currentAverage + "; wagi: " + inputs(0).weight + " I " + inputs(1).weight + "; linia numer: " + counterLine)
+        if(currentAverage <= maxDefect){
+          // Aktualny błą∂ (v - to co powinno być, result - aktualny wynik)
+
+          isLearned = true
+        }else {
+          for (a <- 0 until (numberOfInputs)) {
+            inputs(a).weight = inputs(a).weight + learningFactor*currentDefect*inputs(a).input
+          }
+          biasInput.weight = biasInput.weight + learningFactor*currentDefect*biasInput.input
+          isLearned = false
+        }
+      }
+    }
+  }
 
   def learn2(learningSet :scala.collection.mutable.Map[ArrayBuffer[Float], Int]): Unit = {
     var mistakes = scala.collection.mutable.Map[ArrayBuffer[Float], Float]()
@@ -45,7 +81,7 @@ class NeuronMultiInputs (var numberOfInputs :Int, val beta :Float) {
       for((k, v) <- learningSet) {
         var a :Int = 0
         // Wrzucamy na wejścia wejścia z setu uczącego
-        for (a <- 0 until (numberOfInputs - 1)){
+        for (a <- 0 until (numberOfInputs)){
           inputs(a).input = k(a)
         }
         val result = activationBlock
@@ -53,13 +89,13 @@ class NeuronMultiInputs (var numberOfInputs :Int, val beta :Float) {
         var currentDefect :Float = Math.abs(v - result)
         mistakes(k) = currentDefect
         var currentAverage = calculateFinalAverage(mistakes.values.toArray)
-        println("klucz: " + k.toString() + "; oczekiwana wartość: " + v +  "; Wynik: " + result + "; błąd: " + (v - result) + "; średnia: " + currentAverage + "; miejsce w zbiorze: " + counter + "; linia numer: " + counterLine)
+        println("klucz: " + k.toString() + "; oczekiwana wartość: " + v +  "; Wynik: " + result + "; błąd: " + (v - result) + "; średnia: " + currentAverage + "; wagi: " + inputs(0).weight + " I " + inputs(1).weight + "; linia numer: " + counterLine)
         if(currentAverage <= maxDefect){
         // Aktualny błą∂ (v - to co powinno być, result - aktualny wynik)
 
           isLearned = true
         }else {
-          for (a <- 0 until (numberOfInputs - 1)) {
+          for (a <- 0 until (numberOfInputs)) {
             inputs(a).weight = inputs(a).weight + inputs(a).input * learningFactor * (v - result) * result * (1 - result)
           }
           biasInput.weight = biasInput.weight + biasInput.input * learningFactor * (v - result) * result * (1 - result)
